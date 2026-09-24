@@ -1,4 +1,8 @@
-.PHONY: bootstrap project open test register beta clean
+.PHONY: bootstrap project open test verify register beta clean
+
+DEVELOPER_DIR ?= /Applications/Xcode.app/Contents/Developer
+export DEVELOPER_DIR
+TEST_DESTINATION ?= platform=iOS Simulator,name=iPhone 17
 
 bootstrap:            ## Install XcodeGen + fastlane
 	brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
@@ -14,7 +18,10 @@ open: project         ## Generate and open in Xcode
 
 test: project         ## Run unit tests on the iPhone simulator
 	xcodebuild test -project Wrist.xcodeproj -scheme Wrist \
-		-destination 'platform=iOS Simulator,name=iPhone 17'
+		-destination '$(TEST_DESTINATION)' CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO
+
+verify:               ## Build both apps and exercise unit/UI tests (no upload)
+	WRIST_TEST_DESTINATION='$(TEST_DESTINATION)' bash scripts/verify-mac.sh
 
 register:             ## Create bundle IDs + App Store Connect record (needs fastlane/.env)
 	bundle exec fastlane register

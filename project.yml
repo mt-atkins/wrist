@@ -75,8 +75,19 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.distyll.wrist
-        WKBackgroundModes: [audio]
         NSMicrophoneUsageDescription: Wrist records what you say so your iPhone can turn it into notes and to-dos.
+
+  WristUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [WristUITests]
+    dependencies:
+      - target: Wrist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.distyll.wrist.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Wrist
 
   WristTests:
     type: bundle.unit-test
@@ -101,7 +112,7 @@ schemes:
       config: Debug
     test:
       config: Debug
-      targets: [WristTests]
+      targets: [WristTests, WristUITests]
     archive:
       config: Release
   WristWatch:

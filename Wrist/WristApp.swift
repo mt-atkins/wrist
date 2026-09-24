@@ -16,6 +16,11 @@ struct WristApp: App {
                 .environmentObject(recorder)
                 .preferredColorScheme(.dark)
                 .tint(Theme.ember)
+                .onAppear {
+                    recorder.onRecordingFinished = { recording in
+                        store.ingestAudio(at: recording.url, createdAt: recording.startedAt, duration: recording.duration, source: .phone)
+                    }
+                }
         }
     }
 }

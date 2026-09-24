@@ -14,7 +14,7 @@ enum WristLink {
     static let isDone = "isDone"
 
     enum Kind: String {
-        case audio, note, ask, toggleAction
+        case audio, note, ask, toggleAction, saved
     }
 
     static func encode(_ memos: [Memo]) -> Data? {

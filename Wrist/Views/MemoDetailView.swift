@@ -16,7 +16,13 @@ struct MemoDetailView: View {
                     header(memo)
                     if let file = memo.audioFileName { playerRow(url: store.audioURL(for: file), duration: memo.duration) }
                     if let error = memo.errorMessage, memo.status == .failed { failure(error) }
-                    if !memo.summary.isEmpty { section("Summary") { Text(memo.summary) } }
+                    if !memo.summary.isEmpty {
+                        section("Summary") {
+                            Text(memo.summary)
+                            Text(memo.insightSource == .appleIntelligence ? "Apple Intelligence · check against the transcript" : "Local rules · extracted from your words, not an AI summary")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                     if !memo.actionItems.isEmpty { actions(memo) }
                     if !memo.transcript.isEmpty { transcript(memo) }
                 }
@@ -30,14 +36,15 @@ struct MemoDetailView: View {
                         Image(systemName: "square.and.arrow.up")
                     }
                     Menu {
-                        Button("Re-run AI", systemImage: "arrow.clockwise") { store.process(memo.id) }
+                        Button("Reprocess capture", systemImage: "arrow.clockwise") { store.process(memo.id) }
                         Button("Delete", systemImage: "trash", role: .destructive) {
-                            store.delete(memo.id)
-                            dismiss()
+                            if store.delete(memo.id) { dismiss() }
                         }
+                        .accessibilityIdentifier("delete-memo")
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                    .accessibilityIdentifier("memo-menu")
                 }
             }
         } else {

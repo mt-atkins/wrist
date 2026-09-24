@@ -27,7 +27,7 @@ struct AskSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         if turns.isEmpty {
-                            Text("Ask anything about your captures.")
+                            Text(Summarizer.usesAppleIntelligence ? "Answers use relevant captures, not your Apple Notes library. Check the original before acting." : "Local keyword search is active. Replies are matching excerpts, not AI-generated answers.")
                                 .foregroundStyle(.secondary)
                             ForEach(suggestions, id: \.self) { suggestion in
                                 Button(suggestion) { Task { await ask(suggestion) } }

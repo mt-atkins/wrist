@@ -13,11 +13,7 @@ struct OrbView: View {
         let lvl = CGFloat(level)
         ZStack {
             ForEach(0..<3, id: \.self) { ring in
-                let r = CGFloat(ring)
-                Circle()
-                    .stroke(Theme.orb, lineWidth: 1.5)
-                    .opacity(isActive ? 0.55 - Double(ring) * 0.15 : 0.18 - Double(ring) * 0.04)
-                    .scaleEffect(isActive ? 1.05 + lvl * (0.18 + r * 0.14) + r * 0.08 : (breathe ? 1.06 : 1.0) + r * 0.07)
+                ringView(ring, level: lvl)
             }
 
             Circle()
@@ -43,6 +39,17 @@ struct OrbView: View {
             withAnimation(.linear(duration: 14).repeatForever(autoreverses: false)) { spin = true }
         }
         .accessibilityLabel(isActive ? "Stop capture" : "Start capture")
+    }
+
+    private func ringView(_ index: Int, level: CGFloat) -> some View {
+        let radius = CGFloat(index)
+        let opacity: Double = isActive ? 0.55 - Double(index) * 0.15 : 0.18 - Double(index) * 0.04
+        let activeScale: CGFloat = 1.05 + level * (0.18 + radius * 0.14) + radius * 0.08
+        let idleScale: CGFloat = (breathe ? 1.06 : 1.0) + radius * 0.07
+        return Circle()
+            .stroke(Theme.orb, lineWidth: 1.5)
+            .opacity(opacity)
+            .scaleEffect(isActive ? activeScale : idleScale)
     }
 }
 

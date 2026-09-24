@@ -38,13 +38,24 @@ struct CaptureView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle("Wrist")
+        .onChange(of: link.lastDeliveredID) { _, id in
+            if id != nil { capture.show("Saved on iPhone") }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if let error = link.lastError {
+                Text(error).font(.caption2).foregroundStyle(Theme.rose).lineLimit(3)
+            } else if link.pendingTransfers > 0 {
+                Text("\(link.pendingTransfers) waiting for iPhone").font(.caption2).foregroundStyle(.secondary)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 TextFieldLink(prompt: Text("Say or scribble a note")) {
-                    Image(systemName: "text.bubble")
+                    Image(systemName: "text.bubble").foregroundStyle(.white)
                 } onSubmit: { text in
                     capture.sendNote(text)
                 }
+                .accessibilityLabel("Dictate a note")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Image(systemName: link.isReachable ? "iphone" : "iphone.slash")

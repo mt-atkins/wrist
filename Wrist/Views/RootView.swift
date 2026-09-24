@@ -4,6 +4,7 @@ struct RootView: View {
     @EnvironmentObject private var store: MemoStore
     @State private var search = ""
     @State private var showAsk = false
+    @State private var showNote = false
 
     private var filtered: [Memo] {
         guard !search.isEmpty else { return store.memos }
@@ -31,9 +32,10 @@ struct RootView: View {
                                     MemoCard(memo: memo)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("memo-\(memo.id.uuidString)")
                                 .contextMenu {
                                     Button("Delete", systemImage: "trash", role: .destructive) {
-                                        withAnimation { store.delete(memo.id) }
+                                        _ = withAnimation { store.delete(memo.id) }
                                     }
                                 }
                             }
@@ -47,8 +49,23 @@ struct RootView: View {
                 CaptureBar()
             }
             .navigationTitle("Wrist")
+            .safeAreaInset(edge: .top) {
+                if let error = store.storageError {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.rose)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .accessibilityIdentifier("storage-error")
+                }
+            }
             .navigationDestination(for: UUID.self) { MemoDetailView(memoID: $0) }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("New note", systemImage: "square.and.pencil") { showNote = true }
+                        .accessibilityIdentifier("new-note")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showAsk = true
@@ -58,6 +75,7 @@ struct RootView: View {
                 }
             }
             .sheet(isPresented: $showAsk) { AskSheet() }
+            .sheet(isPresented: $showNote) { NewNoteSheet() }
         }
     }
 }
@@ -70,7 +88,7 @@ private struct StatsHeader: View {
         HStack(spacing: 10) {
             stat("\(captures)", "captures", "waveform")
             stat("\(openActions)", "open to-dos", "checklist")
-            stat(Summarizer.usesAppleIntelligence ? "On" : "Lite", "on-device AI", "apple.intelligence")
+            stat(Summarizer.usesAppleIntelligence ? "AI" : "Rules", Summarizer.usesAppleIntelligence ? "on-device model" : "local fallback", "sparkles")
         }
         .padding(.top, 4)
     }
