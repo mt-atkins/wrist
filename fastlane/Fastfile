@@ -1,0 +1,33 @@
+default_platform(:ios)
+
+platform :ios do
+  bundle_id = ENV.fetch("WRIST_BUNDLE_ID", "com.distyll.wrist")
+
+  desc "Register both bundle IDs and create the Wrist app record in App Store Connect"
+  lane :register do
+    # iPhone app + its App Store Connect record
+    produce(
+      app_identifier: bundle_id,
+      app_name: ENV.fetch("WRIST_APP_NAME", "Wrist by Distyll"),
+      sku: ENV.fetch("WRIST_SKU", "distyll-wrist"),
+      language: "English",
+      app_version: "0.1.0",
+      platforms: ["ios"]
+    )
+    # Watch app only needs a Developer Portal bundle ID; it ships inside the iPhone app.
+    produce(
+      app_identifier: "#{bundle_id}.watchkitapp",
+      app_name: "Wrist Watch App",
+      skip_itc: true
+    )
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    sh("cd .. && xcodegen generate")
+    increment_build_number(xcodeproj: "Wrist.xcodeproj", build_number: latest_testflight_build_number + 1)
+    build_app(project: "Wrist.xcodeproj", scheme: "Wrist", export_method: "app-store",
+              xcargs: "-allowProvisioningUpdates")
+    upload_to_testflight(skip_waiting_for_build_processing: true)
+  end
+end

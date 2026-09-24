@@ -1,0 +1,5 @@
+// Shared build settings. Put your Apple Developer Team ID in Config/Local.xcconfig
+// (git-ignored), e.g.:  DEVELOPMENT_TEAM = ABCDE12345
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"
