@@ -9,11 +9,11 @@ struct InboxView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "tray")
                         .font(.title2)
-                        .foregroundStyle(Theme.accent)
+                        .foregroundStyle(Theme.orange)
                     Text("Captures show up here once your iPhone has summarized them.")
                         .font(.footnote)
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.softInk)
                 }
                 .padding()
             } else {
@@ -28,15 +28,15 @@ struct InboxView: View {
                                     ProgressView().controlSize(.mini)
                                     Text(memo.status.label)
                                 } else {
-                                    Text(memo.createdAt, style: .relative)
+                                    Text(memo.createdAt, format: .dateTime.hour().minute())
                                     if memo.openActionCount > 0 {
                                         Text("· \(memo.openActionCount) to-do")
-                                            .foregroundStyle(Theme.ember)
+                                            .foregroundStyle(Theme.orange)
                                     }
                                 }
                             }
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundStyle(Theme.machineGrey)
                         }
                     }
                 }
@@ -62,7 +62,7 @@ struct WatchMemoDetailView: View {
                     if !memo.summary.isEmpty {
                         Text(memo.summary)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.softInk)
                     }
                     ForEach(memo.actionItems) { item in
                         Button {
@@ -70,7 +70,7 @@ struct WatchMemoDetailView: View {
                         } label: {
                             HStack(alignment: .top) {
                                 Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(item.isDone ? Color.secondary : Theme.ember)
+                                    .foregroundStyle(item.isDone ? Theme.machineGrey : Theme.orange)
                                 Text(item.text)
                                     .font(.footnote)
                                     .strikethrough(item.isDone)

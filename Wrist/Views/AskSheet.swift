@@ -27,28 +27,35 @@ struct AskSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         if turns.isEmpty {
-                            Text("Ask anything about your captures.")
-                                .foregroundStyle(.secondary)
+                            SectionLabel("Try asking")
                             ForEach(suggestions, id: \.self) { suggestion in
-                                Button(suggestion) { Task { await ask(suggestion) } }
-                                    .buttonStyle(.bordered)
+                                Button { Task { await ask(suggestion) } } label: {
+                                    HStack {
+                                        Text(suggestion).foregroundStyle(Theme.paper)
+                                        Spacer()
+                                        Image(systemName: "arrow.right").foregroundStyle(Theme.orange)
+                                    }
+                                    .font(.subheadline)
+                                    .panel(padding: 14)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         ForEach(turns) { turn in
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(turn.question)
                                     .font(.headline)
+                                    .foregroundStyle(Theme.paper)
                                 if let answer = turn.answer {
                                     Text(answer)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Theme.softInk)
                                         .textSelection(.enabled)
                                 } else {
                                     ProgressView()
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(14)
-                            .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .panel(padding: 14)
                             .id(turn.id)
                         }
                     }
@@ -67,12 +74,19 @@ struct AskSheet: View {
                     Button {
                         Task { await ask(input) }
                     } label: {
-                        Image(systemName: "arrow.up.circle.fill").font(.title2)
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 34)
+                            .background(Theme.orange, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                     .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty || isThinking)
                 }
-                .padding(12)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .padding(.leading, 14)
+                .padding(.trailing, 6)
+                .padding(.vertical, 6)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous).stroke(Theme.line))
                 .padding(12)
             }
             .background(Theme.background.ignoresSafeArea())

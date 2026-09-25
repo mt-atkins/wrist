@@ -15,7 +15,7 @@ struct WristApp: App {
                 .environmentObject(store)
                 .environmentObject(recorder)
                 .preferredColorScheme(.dark)
-                .tint(Theme.ember)
+                .tint(Theme.orange)
         }
     }
 }

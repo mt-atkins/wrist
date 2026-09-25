@@ -11,6 +11,6 @@ struct WatchRootView: View {
             .tabViewStyle(.verticalPage)
             .background(Theme.background.ignoresSafeArea())
         }
-        .tint(Theme.ember)
+        .tint(Theme.orange)
     }
 }

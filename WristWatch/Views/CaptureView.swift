@@ -19,17 +19,19 @@ struct CaptureView: View {
             Group {
                 if let toast = capture.toast {
                     Label(toast, systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(Theme.ember)
+                        .foregroundStyle(Theme.orange)
                 } else if recorder.isRecording {
                     Text(recorder.elapsed.clock)
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
+                        .font(.system(.body, design: .monospaced).weight(.semibold))
+                        .foregroundStyle(Theme.paper)
                 } else if capture.micDenied {
                     Text("Allow mic in Settings")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.machineGrey)
                 } else {
-                    Text("Tap to capture")
-                        .foregroundStyle(.secondary)
+                    Text("TAP TO CAPTURE")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .kerning(1.2)
+                        .foregroundStyle(Theme.machineGrey)
                 }
             }
             .font(.footnote.weight(.medium))
@@ -48,10 +50,10 @@ struct CaptureView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Image(systemName: link.isReachable ? "iphone" : "iphone.slash")
-                    .foregroundStyle(link.isReachable ? Color.secondary : Theme.rose)
+                    .foregroundStyle(link.isReachable ? Theme.machineGrey : Theme.red)
                     .overlay(alignment: .topTrailing) {
                         if link.pendingTransfers > 0 {
-                            Circle().fill(Theme.ember).frame(width: 6, height: 6)
+                            Circle().fill(Theme.orange).frame(width: 6, height: 6)
                         }
                     }
             }

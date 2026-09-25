@@ -49,13 +49,15 @@ struct MemoDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: memo.source.symbol)
-                Text(memo.createdAt, format: .dateTime.month().day().hour().minute())
+                Text(memo.createdAt, format: .dateTime.day().month(.abbreviated).hour().minute())
                 StatusChip(status: memo.status)
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            .font(.system(size: 12, weight: .medium, design: .monospaced))
+            .foregroundStyle(Theme.machineGrey)
             Text(memo.displayTitle)
                 .font(.largeTitle.bold())
+                .kerning(-0.8)
+                .foregroundStyle(Theme.paper)
             if !memo.tags.isEmpty {
                 HStack { ForEach(memo.tags, id: \.self) { TagChip(tag: $0) } }
             }
@@ -70,28 +72,28 @@ struct MemoDetailView: View {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                     .font(.title3)
                     .frame(width: 44, height: 44)
-                    .background(Theme.accent, in: Circle())
+                    .background(Theme.orange, in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
                     .foregroundStyle(.white)
             }
             ProgressView(value: player.progress)
-                .tint(Theme.ember)
+                .tint(Theme.orange)
             Text(duration.clock)
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(Theme.machineGrey)
         }
-        .padding(12)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .panel(padding: 12)
     }
 
     private func failure(_ error: String) -> some View {
         HStack {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.rose)
-            Text(error).font(.footnote)
+            StatusDot(color: Theme.red)
+            Text(error).font(.footnote).foregroundStyle(Theme.paper)
             Spacer()
             Button("Retry") { store.process(memoID) }
         }
         .padding(12)
-        .background(Theme.rose.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Theme.red.opacity(0.12), in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous).stroke(Theme.red.opacity(0.4)))
     }
 
     private func actions(_ memo: Memo) -> some View {
@@ -103,24 +105,32 @@ struct MemoDetailView: View {
                     } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 10) {
                             Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(item.isDone ? Color.secondary : Theme.ember)
+                                .foregroundStyle(item.isDone ? Theme.machineGrey : Theme.orange)
                             Text(item.text)
                                 .strikethrough(item.isDone)
-                                .foregroundStyle(item.isDone ? .secondary : .primary)
+                                .foregroundStyle(item.isDone ? Theme.machineGrey : Theme.paper)
                                 .multilineTextAlignment(.leading)
                         }
                     }
                     .buttonStyle(.plain)
                 }
                 if memo.openActionCount > 0 {
-                    Button("Send to Reminders", systemImage: "checklist") {
+                    Button {
                         Task { await exportReminders(memo) }
+                    } label: {
+                        Label("Send to Reminders", systemImage: "checklist")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .frame(height: 38)
+                            .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous).stroke(Theme.line))
+                            .foregroundStyle(Theme.paper)
                     }
-                    .font(.subheadline.weight(.semibold))
+                    .buttonStyle(.plain)
                     .padding(.top, 4)
                 }
                 if let exportMessage {
-                    Text(exportMessage).font(.caption).foregroundStyle(.secondary)
+                    Text(exportMessage).font(.caption).foregroundStyle(Theme.machineGrey)
                 }
             }
         }
@@ -131,7 +141,7 @@ struct MemoDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(memo.transcript)
                     .lineLimit(showTranscript ? nil : 4)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.softInk)
                     .textSelection(.enabled)
                 Button(showTranscript ? "Show less" : "Show full transcript") {
                     withAnimation { showTranscript.toggle() }
@@ -143,15 +153,12 @@ struct MemoDetailView: View {
 
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title.uppercased())
-                .font(.caption.weight(.bold))
-                .kerning(1.2)
-                .foregroundStyle(Theme.accent)
+            SectionLabel(title)
             content()
+                .foregroundStyle(Theme.paper)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .panel()
     }
 
     private func exportReminders(_ memo: Memo) async {

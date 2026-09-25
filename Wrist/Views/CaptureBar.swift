@@ -10,8 +10,12 @@ struct CaptureBar: View {
         HStack(spacing: 16) {
             if recorder.isRecording {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(recorder.elapsed.clock)
-                        .font(.title3.monospacedDigit().weight(.semibold))
+                    HStack(spacing: 6) {
+                        StatusDot(color: Theme.orange)
+                        Text(recorder.elapsed.clock)
+                            .font(.system(size: 20, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(Theme.paper)
+                    }
                     WaveformView(levels: recorder.history)
                 }
                 .transition(.move(edge: .leading).combined(with: .opacity))
@@ -30,7 +34,9 @@ struct CaptureBar: View {
         .padding(.vertical, recorder.isRecording ? 14 : 0)
         .background {
             if recorder.isRecording {
-                Capsule().fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Theme.surface)
+                    .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Theme.line))
             }
         }
         .padding(.horizontal, 24)

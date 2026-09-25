@@ -39,6 +39,15 @@ project.yml    XcodeGen spec (the .xcodeproj is generated and not committed)
 fastlane/      App Store Connect registration + TestFlight
 ```
 
+## Brand
+
+Wrist uses the Distyll house style shared with Baseline, Notch and Loyal. The tokens and components live in `Shared/Theme.swift`.
+
+- **Colour:** graphite surfaces (`#111316` → `#24282E`) with one-pixel `#343941` lines. **Distyll orange `#FF5A1F`** is the only signal colour and marks the current action, such as the orb, the primary buttons and open to-dos. Blue, green, amber and red are only used to show status.
+- **Type:** SF Pro for words and SF Mono for measurements (times, durations, counts, section labels). The wordmark is **Wrist.** with an orange full stop, like **Notch.**.
+- **Shape:** flat panels with a 14 pt radius, controls with 10 pt and tags with 4 pt. Depth comes from tone, not shadows. The only glow is on the orange orb.
+- **Icon:** a graphite gradient with faint scan lines, white rounded waveform bars and one glowing orange bar.
+
 ## Run it locally
 
 You'll need a Mac with Xcode 26+ and Homebrew.

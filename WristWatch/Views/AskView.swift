@@ -15,7 +15,7 @@ struct AskView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(Theme.accent, in: Capsule())
+                        .background(Theme.orange, in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
                         .foregroundStyle(.white)
                 } onSubmit: { text in
                     Task { await ask(text) }
@@ -25,7 +25,7 @@ struct AskView: View {
                 if let question {
                     Text(question)
                         .font(.footnote.italic())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.softInk)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if isAsking {
@@ -37,7 +37,7 @@ struct AskView: View {
                 } else if question == nil {
                     Text("Try “What did I promise Sam?”")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.softInk)
                 }
             }
             .padding(.horizontal, 4)

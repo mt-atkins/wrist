@@ -4,61 +4,57 @@ struct MemoCard: View {
     let memo: Memo
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: memo.source.symbol)
-                Text(memo.createdAt, format: .dateTime.weekday().hour().minute())
-                if memo.duration > 0 {
-                    Text("· \(memo.duration.clock)")
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: memo.source.symbol)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Theme.softInk)
+                .frame(width: 38, height: 38)
+                .overlay(Circle().stroke(Theme.line, lineWidth: 1))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(memo.displayTitle)
+                    .font(.headline)
+                    .foregroundStyle(Theme.paper)
+
+                if !memo.summary.isEmpty {
+                    Text(memo.summary)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.softInk)
+                        .lineLimit(2)
                 }
-                Spacer()
-                StatusChip(status: memo.status)
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
 
-            Text(memo.displayTitle)
-                .font(.headline)
-                .foregroundStyle(.primary)
-
-            if !memo.summary.isEmpty {
-                Text(memo.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-            }
-
-            if memo.openActionCount > 0 || !memo.tags.isEmpty {
                 HStack(spacing: 6) {
+                    Text(memo.createdAt, format: .dateTime.weekday(.abbreviated).hour().minute())
+                    if memo.duration > 0 { Text("· \(memo.duration.clock)") }
                     if memo.openActionCount > 0 {
-                        Label("\(memo.openActionCount)", systemImage: "checklist")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Theme.ember)
+                        Text("· \(memo.openActionCount) to-do")
+                            .foregroundStyle(Theme.orange)
                     }
-                    ForEach(memo.tags, id: \.self) { TagChip(tag: $0) }
+                    Spacer(minLength: 0)
+                    StatusChip(status: memo.status)
                 }
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(Theme.machineGrey)
+                .padding(.top, 2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.hairline))
+        .panel(padding: 14)
     }
 }
 
+/// Dot + explicit label; blue while working, red on failure, hidden when ready.
 struct StatusChip: View {
     let status: MemoStatus
 
     var body: some View {
         if status != .ready {
-            HStack(spacing: 4) {
-                if status.isWorking { ProgressView().controlSize(.mini) }
-                Text(status.label)
+            HStack(spacing: 5) {
+                StatusDot(color: status == .failed ? Theme.red : Theme.blue)
+                Text(status.label.lowercased())
             }
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background((status == .failed ? Theme.rose : Theme.violet).opacity(0.25), in: Capsule())
+            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            .foregroundStyle(status == .failed ? Theme.red : Theme.softInk)
         }
     }
 }
@@ -68,10 +64,10 @@ struct TagChip: View {
 
     var body: some View {
         Text("#\(tag)")
-            .font(.caption2.weight(.medium))
-            .padding(.horizontal, 8)
+            .font(.system(size: 11, weight: .medium, design: .monospaced))
+            .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(Color.white.opacity(0.08), in: Capsule())
-            .foregroundStyle(.secondary)
+            .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.tag, style: .continuous))
+            .foregroundStyle(Theme.softInk)
     }
 }
