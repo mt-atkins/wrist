@@ -27,6 +27,9 @@ struct AskSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         if turns.isEmpty {
+                            Text(Summarizer.usesAppleIntelligence ? "Answers use relevant captures, not your Apple Notes library. Check the original before acting." : "Local keyword search is active. Replies are matching excerpts, not AI-generated answers.")
+                                .font(.footnote)
+                                .foregroundStyle(Theme.softInk)
                             SectionLabel("Try asking")
                             ForEach(suggestions, id: \.self) { suggestion in
                                 Button { Task { await ask(suggestion) } } label: {

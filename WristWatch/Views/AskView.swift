@@ -21,6 +21,7 @@ struct AskView: View {
                     Task { await ask(text) }
                 }
                 .buttonStyle(.plain)
+                .disabled(isAsking)
 
                 if let question {
                     Text(question)
@@ -47,7 +48,7 @@ struct AskView: View {
 
     private func ask(_ text: String) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty, !isAsking else { return }
         question = trimmed
         answer = nil
         isAsking = true

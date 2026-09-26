@@ -14,6 +14,7 @@ struct Memo: Identifiable, Codable, Hashable {
     var actionItems: [ActionItem] = []
     var tags: [String] = []
     var errorMessage: String?
+    var insightSource: InsightSource?
 
     var displayTitle: String { title.isEmpty ? "New capture" : title }
     var openActionCount: Int { actionItems.filter { !$0.isDone }.count }

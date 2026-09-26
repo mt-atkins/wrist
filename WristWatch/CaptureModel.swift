@@ -11,18 +11,26 @@ final class CaptureModel: ObservableObject {
     @Published var micDenied = false
 
     private var toastTask: Task<Void, Never>?
+    private var isStarting = false
+
+    init() {
+        recorder.onRecordingFinished = { recording in WatchLink.shared.send(recording) }
+    }
 
     func toggle() async {
-        if recorder.isRecording { finish() } else { await start() }
+        if recorder.isRecording || recorder.pendingRecording != nil { finish() } else { await start() }
     }
 
     func start() async {
-        guard !recorder.isRecording else { return }
+        guard !recorder.isRecording, !isStarting else { return }
+        isStarting = true
+        defer { isStarting = false }
         guard await recorder.requestPermission() else {
             micDenied = true
             WKInterfaceDevice.current().play(.failure)
             return
         }
+        micDenied = false
         do {
             try recorder.start()
             WKInterfaceDevice.current().play(.start)
@@ -39,19 +47,27 @@ final class CaptureModel: ObservableObject {
             show("Too short — hold on a sec longer")
             return
         }
-        WatchLink.shared.send(recording)
-        show(WatchLink.shared.isReachable ? "Sent to iPhone" : "Queued for iPhone")
+        if WatchLink.shared.send(recording) {
+            show("Queued for iPhone")
+        } else {
+            recorder.retainForRetry(recording)
+            show("Save failed. Tap to retry.")
+        }
     }
 
     func sendNote(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        WatchLink.shared.sendNote(trimmed)
-        WKInterfaceDevice.current().play(.success)
-        show("Note sent")
+        if WatchLink.shared.sendNote(trimmed) {
+            WKInterfaceDevice.current().play(.success)
+            show("Note queued")
+        } else {
+            WKInterfaceDevice.current().play(.failure)
+            show("Could not save note")
+        }
     }
 
-    private func show(_ message: String) {
+    func show(_ message: String) {
         toastTask?.cancel()
         withAnimation { toast = message }
         toastTask = Task {

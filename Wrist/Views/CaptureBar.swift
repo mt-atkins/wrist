@@ -5,6 +5,7 @@ struct CaptureBar: View {
     @EnvironmentObject private var recorder: AudioRecorder
     @EnvironmentObject private var store: MemoStore
     @State private var error: String?
+    @State private var isStarting = false
 
     var body: some View {
         HStack(spacing: 16) {
@@ -29,6 +30,8 @@ struct CaptureBar: View {
                     .frame(width: 72, height: 72)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("record-toggle")
+            .disabled(isStarting)
         }
         .padding(.horizontal, recorder.isRecording ? 20 : 0)
         .padding(.vertical, recorder.isRecording ? 14 : 0)
@@ -50,14 +53,20 @@ struct CaptureBar: View {
     }
 
     private func toggle() async {
-        if recorder.isRecording {
+        if recorder.isRecording || recorder.pendingRecording != nil {
             guard let recording = recorder.stop() else { return }
             guard recording.duration >= 1 else {
                 try? FileManager.default.removeItem(at: recording.url)
                 return
             }
-            store.ingestAudio(at: recording.url, createdAt: recording.startedAt, duration: recording.duration, source: .phone)
+            if !store.ingestAudio(at: recording.url, createdAt: recording.startedAt, duration: recording.duration, source: .phone) {
+                recorder.retainForRetry(recording)
+                error = "Audio retained. Tap again to retry saving. " + (store.storageError ?? "")
+            }
         } else {
+            guard !isStarting else { return }
+            isStarting = true
+            defer { isStarting = false }
             guard await recorder.requestPermission() else {
                 error = "Allow microphone access for Wrist in Settings."
                 return

@@ -1,72 +1,92 @@
 import Foundation
+import Combine
 
-/// Source of truth for captures on the phone: persistence, the transcribe → summarize pipeline,
-/// and syncing a digest back to the watch.
+/// All mutations and pipeline completions serialize on the main actor. A capture is
+/// accepted only after its archive is durable; processing success is not a delivery ACK.
 @MainActor
 final class MemoStore: ObservableObject {
     static let shared = MemoStore()
-
     @Published private(set) var memos: [Memo] = []
+    @Published private(set) var storageError: String?
+    private var deletedIDs: Set<UUID> = []
+    private var canWrite = true
+    private var tasks: [UUID: Task<Void, Never>] = [:]
+    private let fileURL: URL
 
-    private let fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("memos.json")
-
-    init() {
-        load()
-        // Anything interrupted mid-pipeline (app killed) gets picked back up.
-        for memo in memos where memo.status.isWorking {
-            process(memo.id)
+    init(fileURL: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("memos.json")) {
+        self.fileURL = fileURL
+        do {
+            let archive = try DurableState.load(MemoArchive.self, from: fileURL) ?? MemoArchive()
+            memos = archive.memos
+            deletedIDs = archive.deletedIDs
+            for memo in memos where memo.status.isWorking { process(memo.id) }
+        } catch {
+            canWrite = false
+            storageError = "Cannot read captures. Original data has been preserved: \(error.localizedDescription)"
         }
     }
 
-    // MARK: Ingest
-
-    func ingestAudio(at url: URL, id: UUID = UUID(), createdAt: Date, duration: TimeInterval, source: MemoSource) {
-        guard !memos.contains(where: { $0.id == id }) else { return }
-        let memo = Memo(id: id, createdAt: createdAt, duration: duration, audioFileName: url.lastPathComponent, source: source)
-        memos.insert(memo, at: 0)
-        save()
-        process(id)
+    /// Includes tombstones: late transport retries must never resurrect a deletion.
+    func hasAccepted(_ id: UUID) -> Bool {
+        memos.contains { $0.id == id } || deletedIDs.contains(id)
     }
 
-    func ingestNote(_ text: String, id: UUID = UUID(), createdAt: Date = Date()) {
-        guard !memos.contains(where: { $0.id == id }) else { return }
-        let memo = Memo(id: id, createdAt: createdAt, source: .watchNote, transcript: text)
-        memos.insert(memo, at: 0)
-        save()
-        process(id)
+    @discardableResult
+    func ingestAudio(at url: URL, id: UUID = UUID(), createdAt: Date, duration: TimeInterval, source: MemoSource) -> Bool {
+        if hasAccepted(id) { return true }
+        return insert(Memo(id: id, createdAt: createdAt, duration: duration, audioFileName: url.lastPathComponent, source: source))
+    }
+
+    @discardableResult
+    func ingestNote(_ text: String, id: UUID = UUID(), createdAt: Date = Date(), source: MemoSource = .watchNote) -> Bool {
+        if hasAccepted(id) { return true }
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return false }
+        return insert(Memo(id: id, createdAt: createdAt, source: source, transcript: text))
+    }
+
+    private func insert(_ memo: Memo) -> Bool {
+        guard commit([memo] + memos, deleted: deletedIDs) else { return false }
+        process(memo.id)
+        return true
     }
 
     func addSample() {
-        let memo = Memo(duration: 48, source: .sample, transcript: SampleData.transcript)
-        memos.insert(memo, at: 0)
-        save()
-        process(memo.id)
+        _ = insert(Memo(duration: 48, source: .sample, transcript: SampleData.transcript))
     }
 
-    // MARK: Pipeline
-
     func process(_ id: UUID) {
-        Task {
+        guard canWrite, tasks[id] == nil, memo(id) != nil else { return }
+        tasks[id] = Task { [weak self] in
+            guard let self else { return }
+            defer { self.tasks[id] = nil }
             do {
-                if let memo = memo(id), let file = memo.audioFileName, memo.transcript.isEmpty {
-                    update(id) { $0.status = .transcribing }
-                    let text = try await Transcriber.transcribe(url: audioURL(for: file))
-                    update(id) { $0.transcript = text }
+                if let memo = self.memo(id), let file = memo.audioFileName, memo.transcript.isEmpty {
+                    guard self.update(id, { $0.status = .transcribing }) else { return }
+                    let text = try await Transcriber.transcribe(url: self.audioURL(for: file))
+                    try Task.checkCancellation()
+                    guard self.update(id, { $0.transcript = text }) else { return }
                 }
-                guard let memo = memo(id) else { return }
-                update(id) { $0.status = .thinking }
+                guard let memo = self.memo(id), self.update(id, { $0.status = .thinking }) else { return }
                 let insight = await Summarizer.summarize(memo.transcript)
-                update(id) {
+                try Task.checkCancellation()
+                self.update(id) {
                     $0.title = insight.title
                     $0.summary = insight.summary
-                    $0.actionItems = insight.actionItems.map { ActionItem(text: $0) }
+                    $0.insightSource = insight.source
+                    let previous = $0.actionItems
+                    $0.actionItems = insight.actionItems.map { title in
+                        previous.first { $0.text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() } ?? ActionItem(text: title)
+                    }
                     $0.tags = insight.tags
                     $0.errorMessage = nil
                     $0.status = .ready
                 }
+            } catch is CancellationError {
+                // Deletion cancels work; never write a late result back.
             } catch {
-                update(id) {
+                guard !Task.isCancelled else { return }
+                self.update(id) {
                     $0.status = .failed
                     $0.errorMessage = error.localizedDescription
                 }
@@ -74,16 +94,14 @@ final class MemoStore: ObservableObject {
         }
     }
 
-    // MARK: Editing
+    func memo(_ id: UUID) -> Memo? { memos.first { $0.id == id } }
 
-    func memo(_ id: UUID) -> Memo? {
-        memos.first { $0.id == id }
-    }
-
-    func update(_ id: UUID, _ change: (inout Memo) -> Void) {
-        guard let index = memos.firstIndex(where: { $0.id == id }) else { return }
-        change(&memos[index])
-        save()
+    @discardableResult
+    func update(_ id: UUID, _ change: (inout Memo) -> Void) -> Bool {
+        guard let index = memos.firstIndex(where: { $0.id == id }) else { return false }
+        var next = memos
+        change(&next[index])
+        return commit(next, deleted: deletedIDs)
     }
 
     func setAction(_ actionID: UUID, in memoID: UUID, done: Bool) {
@@ -94,36 +112,40 @@ final class MemoStore: ObservableObject {
         }
     }
 
-    func delete(_ id: UUID) {
-        if let file = memo(id)?.audioFileName {
-            try? FileManager.default.removeItem(at: audioURL(for: file))
+    @discardableResult
+    func delete(_ id: UUID) -> Bool {
+        let file = memo(id)?.audioFileName
+        var deleted = deletedIDs
+        deleted.insert(id)
+        guard commit(memos.filter { $0.id != id }, deleted: deleted) else { return false }
+        tasks[id]?.cancel()
+        if let file {
+            do { try FileManager.default.removeItem(at: audioURL(for: file)) }
+            catch { storageError = "Capture deleted, but audio cleanup failed: \(error.localizedDescription)" }
         }
-        memos.removeAll { $0.id == id }
-        save()
+        return true
     }
 
     func audioURL(for fileName: String) -> URL {
         AudioRecorder.directory.appendingPathComponent(fileName)
     }
 
-    // MARK: Ask
-
     func ask(_ question: String) async -> String {
         await Summarizer.answer(question, from: memos)
     }
 
-    // MARK: Persistence
-
-    private func load() {
-        guard let data = try? Data(contentsOf: fileURL),
-              let decoded = try? JSONDecoder().decode([Memo].self, from: data) else { return }
-        memos = decoded
-    }
-
-    private func save() {
-        if let data = try? JSONEncoder().encode(memos) {
-            try? data.write(to: fileURL, options: .atomic)
+    private func commit(_ next: [Memo], deleted: Set<UUID>) -> Bool {
+        guard canWrite else { return false }
+        do {
+            try DurableState.save(MemoArchive(memos: next, deletedIDs: deleted), to: fileURL)
+            memos = next
+            deletedIDs = deleted
+            storageError = nil
+            PhoneLink.shared.pushDigest(memos)
+            return true
+        } catch {
+            storageError = "Captures could not be saved: \(error.localizedDescription)"
+            return false
         }
-        PhoneLink.shared.pushDigest(memos)
     }
 }
