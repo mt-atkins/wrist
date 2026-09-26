@@ -6,6 +6,10 @@ struct MemoDetailView: View {
     @StateObject private var player = AudioPlayer()
     @State private var showTranscript = false
     @State private var exportMessage: String?
+    @State private var paywall: ProFeature?
+    @EnvironmentObject private var pro: ProStore
+    @EnvironmentObject private var obsidian: ObsidianExporter
+    @Environment(\.openURL) private var openURL
 
     let memoID: UUID
 
@@ -19,7 +23,7 @@ struct MemoDetailView: View {
                     if !memo.summary.isEmpty {
                         section("Summary") {
                             Text(memo.summary)
-                            Text(memo.insightSource == .appleIntelligence ? "Apple Intelligence · check against the transcript" : "Local rules · extracted from your words, not an AI summary")
+                            Text(provenance(memo))
                                 .font(.caption).foregroundStyle(Theme.machineGrey)
                         }
                     }
@@ -37,6 +41,17 @@ struct MemoDetailView: View {
                     }
                     Menu {
                         Button("Reprocess capture", systemImage: "arrow.clockwise") { store.process(memo.id) }
+                        Button(obsidian.openURL(for: memo) == nil ? "Save to Obsidian" : "Open in Obsidian", systemImage: "books.vertical") {
+                            guard pro.isPro else { paywall = .obsidian; return }
+                            if let url = obsidian.openURL(for: memo) {
+                                obsidian.export(memo)
+                                openURL(url)
+                            } else if obsidian.export(memo) != nil, let url = obsidian.openURL(for: memo) {
+                                openURL(url)
+                            } else {
+                                exportMessage = obsidian.lastError
+                            }
+                        }
                         Button("Delete", systemImage: "trash", role: .destructive) {
                             if store.delete(memo.id) { dismiss() }
                         }
@@ -47,6 +62,7 @@ struct MemoDetailView: View {
                     .accessibilityIdentifier("memo-menu")
                 }
             }
+            .sheet(item: $paywall) { PaywallView(highlight: $0) }
         } else {
             ContentUnavailableView("Capture deleted", systemImage: "trash")
         }
@@ -123,7 +139,7 @@ struct MemoDetailView: View {
                 }
                 if memo.openActionCount > 0 {
                     Button {
-                        Task { await exportReminders(memo) }
+                        if pro.isPro { Task { await exportReminders(memo) } } else { paywall = .reminders }
                     } label: {
                         Label("Send to Reminders", systemImage: "checklist")
                             .font(.subheadline.weight(.semibold))
@@ -166,6 +182,18 @@ struct MemoDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .panel()
+    }
+
+    private func provenance(_ memo: Memo) -> String {
+        var parts: [String] = []
+        switch memo.insightSource {
+        case .appleIntelligence: parts.append("Apple Intelligence · check against the transcript")
+        case .ownModel: parts.append("\(memo.insightModel ?? "Your model") · check against the transcript")
+        default: parts.append("Local rules · extracted from your words, not an AI summary")
+        }
+        if let model = memo.transcriptModel { parts.append("Transcribed by \(model)") }
+        if let note = memo.insightNote { parts.append(note) }
+        return parts.joined(separator: "\n")
     }
 
     private func exportReminders(_ memo: Memo) async {

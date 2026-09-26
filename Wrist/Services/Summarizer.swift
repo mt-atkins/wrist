@@ -14,11 +14,32 @@ enum Summarizer {
         return false
     }
 
-    static func summarize(_ transcript: String) async -> Insight {
+    static func summarize(_ transcript: String, config: SummaryConfig = SummaryConfig(engine: .automatic)) async -> Insight {
         let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
             return Insight(title: "Silent capture", summary: "No speech was detected.", actionItems: [], tags: [], source: .silent)
         }
+        switch config.engine {
+        case .rules:
+            return Heuristics.insight(from: text)
+        case .byom:
+            if let remote = config.remote {
+                do {
+                    return try await RemoteModel.summarize(text, config: remote)
+                } catch {
+                    // Keep the capture useful; say plainly that the chosen model wasn't used.
+                    var fallback = await onDevice(text)
+                    fallback.note = "Your model wasn't used: \(error.localizedDescription)"
+                    return fallback
+                }
+            }
+            return await onDevice(text)
+        case .automatic, .appleIntelligence:
+            return await onDevice(text)
+        }
+    }
+
+    private static func onDevice(_ text: String) async -> Insight {
         #if canImport(FoundationModels)
         if text.count <= 8_000, usesAppleIntelligence, let insight = try? await modelSummary(of: text) {
             return insight
@@ -27,10 +48,18 @@ enum Summarizer {
         return Heuristics.insight(from: text)
     }
 
-    static func answer(_ question: String, from memos: [Memo]) async -> String {
+    static func answer(_ question: String, from memos: [Memo], config: SummaryConfig = SummaryConfig(engine: .automatic)) async -> String {
         let usable = memos.filter { !$0.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         let relevant = Heuristics.relevantMemos(for: question, memos: usable)
         guard !usable.isEmpty else { return "You haven't captured anything yet." }
+        if config.engine == .rules { return Heuristics.answer(question, memos: usable) }
+        if config.engine == .byom, let remote = config.remote {
+            do {
+                return try await RemoteModel.answer(question, memos: relevant.isEmpty ? usable : relevant, config: remote)
+            } catch {
+                return "(Your model wasn't reachable, so this is a local match.) " + Heuristics.answer(question, memos: usable)
+            }
+        }
         #if canImport(FoundationModels)
         if usesAppleIntelligence, let answer = try? await modelAnswer(question, memos: relevant) {
             return answer

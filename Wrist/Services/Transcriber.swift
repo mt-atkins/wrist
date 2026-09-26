@@ -120,3 +120,17 @@ enum Transcriber {
         }
     }
 }
+
+extension Transcriber {
+    /// Routes to the engine picked in Settings → Models. Both stay on device.
+    /// Returns the text and a label for provenance (nil = Apple Speech).
+    static func transcribe(url: URL, engine: TranscriptionEngine) async throws -> (text: String, model: String?) {
+        switch engine {
+        case .appleSpeech:
+            return (try await transcribe(url: url), nil)
+        case .whisper(let variant):
+            let text = try await WhisperTranscriber.shared.transcribe(url: url, variant: variant)
+            return (text, WhisperModel.catalog.first { $0.variant == variant }?.name ?? "Whisper")
+        }
+    }
+}

@@ -3,6 +3,9 @@ import SwiftUI
 /// Chat with everything you've captured.
 struct AskSheet: View {
     @EnvironmentObject private var store: MemoStore
+    @EnvironmentObject private var pro: ProStore
+    @EnvironmentObject private var settings: AppSettings
+    @State private var showPaywall = false
     @Environment(\.dismiss) private var dismiss
     @State private var input = ""
     @State private var turns: [Turn] = []
@@ -13,6 +16,17 @@ struct AskSheet: View {
         let id = UUID()
         let question: String
         var answer: String?
+    }
+
+    private var disclaimer: String {
+        let config = settings.summaryConfig(isPro: pro.isPro)
+        if config.engine == .byom, let remote = config.remote {
+            return "Answers come from \(remote.displayName), using your most relevant captures. Check the original before acting."
+        }
+        if config.engine != .rules, Summarizer.usesAppleIntelligence {
+            return "Answers use relevant captures, not your Apple Notes library. Check the original before acting."
+        }
+        return "Local keyword search is active. Replies are matching excerpts, not AI-generated answers."
     }
 
     private let suggestions = [
@@ -26,8 +40,24 @@ struct AskSheet: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
+                        if !pro.isPro {
+                            Button { showPaywall = true } label: {
+                                HStack(spacing: 8) {
+                                    ProBadge()
+                                    Text(settings.freeAsksRemaining > 0
+                                         ? "\(settings.freeAsksRemaining) free question\(settings.freeAsksRemaining == 1 ? "" : "s") left"
+                                         : "Unlock unlimited Ask with Wrist Pro")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(Theme.paper)
+                                    Spacer()
+                                    Image(systemName: "chevron.right").foregroundStyle(Theme.machineGrey)
+                                }
+                                .panel(padding: 12)
+                            }
+                            .buttonStyle(.plain)
+                        }
                         if turns.isEmpty {
-                            Text(Summarizer.usesAppleIntelligence ? "Answers use relevant captures, not your Apple Notes library. Check the original before acting." : "Local keyword search is active. Replies are matching excerpts, not AI-generated answers.")
+                            Text(disclaimer)
                                 .font(.footnote)
                                 .foregroundStyle(Theme.softInk)
                             SectionLabel("Try asking")
@@ -101,6 +131,7 @@ struct AskSheet: View {
                 }
             }
         }
+        .sheet(isPresented: $showPaywall) { PaywallView(highlight: .ask) }
         .presentationDragIndicator(.visible)
     }
 

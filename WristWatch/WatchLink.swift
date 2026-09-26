@@ -10,6 +10,8 @@ final class WatchLink: NSObject, ObservableObject {
     @Published private(set) var memos: [Memo] = []
     @Published private(set) var isReachable = false
     @Published private(set) var pendingTransfers = 0
+    /// Mirrored from the iPhone; gates Shortcuts/Action-button capture.
+    @Published private(set) var isPro = UserDefaults.standard.bool(forKey: "isPro")
 
     @Published private(set) var lastError: String?
     @Published private(set) var lastDeliveredID: UUID?
@@ -164,6 +166,12 @@ final class WatchLink: NSObject, ObservableObject {
         cache()
     }
 
+    private func applyPro(_ value: Bool?) {
+        guard let value else { return }
+        isPro = value
+        UserDefaults.standard.set(value, forKey: "isPro")
+    }
+
     private func cache() {
         do {
             let data = try JSONEncoder().encode(memos)
@@ -186,16 +194,22 @@ final class WatchLink: NSObject, ObservableObject {
 extension WatchLink: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         let memos = WristLink.decodeMemos(session.receivedApplicationContext)
+        let isPro = session.receivedApplicationContext[WristLink.isPro] as? Bool
         Task { @MainActor in
             if let error { self.lastError = error.localizedDescription }
             if let memos { self.apply(memos) }
+            self.applyPro(isPro)
             self.refreshState()
         }
     }
 
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
-        guard let memos = WristLink.decodeMemos(applicationContext) else { return }
-        Task { @MainActor in self.apply(memos) }
+        let isPro = applicationContext[WristLink.isPro] as? Bool
+        let memos = WristLink.decodeMemos(applicationContext)
+        Task { @MainActor in
+            if let memos { self.apply(memos) }
+            self.applyPro(isPro)
+        }
     }
 
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {

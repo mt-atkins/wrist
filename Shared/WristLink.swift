@@ -12,6 +12,7 @@ enum WristLink {
     static let memos = "memos"
     static let actionID = "actionID"
     static let isDone = "isDone"
+    static let isPro = "isPro"
 
     enum Kind: String {
         case audio, note, ask, toggleAction, saved

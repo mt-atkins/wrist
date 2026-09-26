@@ -15,6 +15,11 @@ struct Memo: Identifiable, Codable, Hashable {
     var tags: [String] = []
     var errorMessage: String?
     var insightSource: InsightSource?
+    /// e.g. "Claude · claude-opus-5" when a user-chosen model wrote the summary.
+    var insightModel: String?
+    /// e.g. "Whisper Small"; nil means Apple Speech.
+    var transcriptModel: String?
+    var insightNote: String?
 
     var displayTitle: String { title.isEmpty ? "New capture" : title }
     var openActionCount: Int { actionItems.filter { !$0.isDone }.count }

@@ -32,7 +32,7 @@ final class PhoneLink: NSObject, ObservableObject {
                 digests.removeLast()
                 data = try JSONEncoder().encode(digests)
             }
-            try session.updateApplicationContext([WristLink.memos: data])
+            try session.updateApplicationContext([WristLink.memos: data, WristLink.isPro: ProStore.shared.isPro])
             if digests.count < min(memos.count, 20) {
                 lastError = "Some captures are too large for the watch inbox; they remain on iPhone."
             }

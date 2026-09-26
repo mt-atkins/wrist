@@ -21,6 +21,12 @@ settings:
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
 
+packages:
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit
+    minVersion: 0.9.0
+    maxVersion: 2.0.0
+
 targets:
   Wrist:
     type: application
@@ -47,7 +53,11 @@ targets:
         NSMicrophoneUsageDescription: Wrist records voice captures so it can transcribe and summarize them for you.
         NSSpeechRecognitionUsageDescription: Wrist transcribes your captures on-device so you can search and summarize them.
         NSRemindersFullAccessUsageDescription: Wrist can send the action items from a capture to Reminders.
+        NSLocalNetworkUsageDescription: Wrist connects to a model server you run on your own network, such as Ollama or LM Studio on your Mac.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     dependencies:
+      - package: WhisperKit
       - target: WristWatch
         embed: true
         codeSign: true
@@ -110,6 +120,7 @@ schemes:
         WristWatch: all
     run:
       config: Debug
+      storeKitConfiguration: Config/Wrist.storekit
     test:
       config: Debug
       targets: [WristTests, WristUITests]

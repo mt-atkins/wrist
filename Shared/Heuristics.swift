@@ -7,10 +7,14 @@ struct Insight: Equatable {
     var tags: [String]
     /// Per-result provenance, not just the device's current model availability.
     var source: InsightSource = .heuristic
+    /// The model that wrote it, when it was a user-chosen model ("Claude · claude-opus-5").
+    var model: String? = nil
+    /// Shown with the summary, e.g. why the chosen model wasn't used.
+    var note: String? = nil
 }
 
 enum InsightSource: String, Codable {
-    case appleIntelligence, heuristic, silent
+    case appleIntelligence, heuristic, silent, ownModel
 }
 
 /// Dependency-free fallback "AI" used when Apple Intelligence isn't available.

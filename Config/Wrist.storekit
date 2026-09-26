@@ -1,0 +1,39 @@
+{
+  "identifier" : "9B7A3C2E",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "6.99",
+      "familyShareable" : true,
+      "internalID" : "6740000001",
+      "localizations" : [
+        {
+          "description" : "Unlimited Ask, Reminders, Shortcuts, Obsidian, your own model and Whisper.",
+          "displayName" : "Wrist Pro",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "com.distyll.wrist.pro",
+      "referenceName" : "Wrist Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_developerTeamID" : "5JSF9P7HWD",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_GB",
+    "_storefront" : "GBR",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

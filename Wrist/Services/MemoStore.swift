@@ -57,23 +57,31 @@ final class MemoStore: ObservableObject {
 
     func process(_ id: UUID) {
         guard canWrite, tasks[id] == nil, memo(id) != nil else { return }
+        let isPro = ProStore.shared.isPro
+        let engine = AppSettings.shared.transcriptionEngine(isPro: isPro)
+        let summaryConfig = AppSettings.shared.summaryConfig(isPro: isPro)
         tasks[id] = Task { [weak self] in
             guard let self else { return }
             defer { self.tasks[id] = nil }
             do {
                 if let memo = self.memo(id), let file = memo.audioFileName, memo.transcript.isEmpty {
                     guard self.update(id, { $0.status = .transcribing }) else { return }
-                    let text = try await Transcriber.transcribe(url: self.audioURL(for: file))
+                    let result = try await Transcriber.transcribe(url: self.audioURL(for: file), engine: engine)
                     try Task.checkCancellation()
-                    guard self.update(id, { $0.transcript = text }) else { return }
+                    guard self.update(id, {
+                        $0.transcript = result.text
+                        $0.transcriptModel = result.model
+                    }) else { return }
                 }
                 guard let memo = self.memo(id), self.update(id, { $0.status = .thinking }) else { return }
-                let insight = await Summarizer.summarize(memo.transcript)
+                let insight = await Summarizer.summarize(memo.transcript, config: summaryConfig)
                 try Task.checkCancellation()
                 self.update(id) {
                     $0.title = insight.title
                     $0.summary = insight.summary
                     $0.insightSource = insight.source
+                    $0.insightModel = insight.model
+                    $0.insightNote = insight.note
                     let previous = $0.actionItems
                     $0.actionItems = insight.actionItems.map { title in
                         previous.first { $0.text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() } ?? ActionItem(text: title)
@@ -82,6 +90,7 @@ final class MemoStore: ObservableObject {
                     $0.errorMessage = nil
                     $0.status = .ready
                 }
+                if let ready = self.memo(id) { ObsidianExporter.shared.exportIfEnabled(ready) }
             } catch is CancellationError {
                 // Deletion cancels work; never write a late result back.
             } catch {
@@ -110,6 +119,7 @@ final class MemoStore: ObservableObject {
                 memo.actionItems[i].isDone = done
             }
         }
+        if let memo = memo(memoID), memo.status == .ready { ObsidianExporter.shared.exportIfEnabled(memo) }
     }
 
     @discardableResult
@@ -130,8 +140,17 @@ final class MemoStore: ObservableObject {
         AudioRecorder.directory.appendingPathComponent(fileName)
     }
 
+    /// Ask is a Pro feature with a few free questions to try it.
     func ask(_ question: String) async -> String {
-        await Summarizer.answer(question, from: memos)
+        let settings = AppSettings.shared
+        let isPro = ProStore.shared.isPro
+        if !isPro {
+            guard settings.freeAsksRemaining > 0 else {
+                return "You've used your \(AppSettings.freeAskLimit) free questions. Unlock Wrist Pro on your iPhone for unlimited Ask."
+            }
+            settings.recordFreeAsk()
+        }
+        return await Summarizer.answer(question, from: memos, config: settings.summaryConfig(isPro: isPro))
     }
 
     private func commit(_ next: [Memo], deleted: Set<UUID>) -> Bool {

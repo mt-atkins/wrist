@@ -5,6 +5,7 @@ struct RootView: View {
     @State private var search = ""
     @State private var showAsk = false
     @State private var showNote = false
+    @State private var showSettings = false
 
     private var filtered: [Memo] {
         guard !search.isEmpty else { return store.memos }
@@ -79,14 +80,21 @@ struct RootView: View {
                     Button("New note", systemImage: "square.and.pencil") { showNote = true }
                         .accessibilityIdentifier("new-note")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
                         showAsk = true
                     } label: {
                         Label("Ask", systemImage: "sparkles")
                     }
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Label("Settings", systemImage: "gearshape")
+                    }
+                    .accessibilityIdentifier("settings")
                 }
             }
+            .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showAsk) { AskSheet() }
             .sheet(isPresented: $showNote) { NewNoteSheet() }
         }

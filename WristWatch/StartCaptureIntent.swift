@@ -8,8 +8,16 @@ struct StartCaptureIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
+        guard WatchLink.shared.isPro else { throw ProRequired() }
         await CaptureModel.shared.start()
         return .result()
+    }
+}
+
+/// Shown by Siri/Shortcuts when capture-from-anywhere isn't unlocked.
+struct ProRequired: Error, CustomLocalizedStringResourceConvertible {
+    var localizedStringResource: LocalizedStringResource {
+        "Starting a capture from Siri, Shortcuts or the Action button is part of Wrist Pro. Unlock it in Wrist on your iPhone."
     }
 }
 
