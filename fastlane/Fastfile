@@ -9,8 +9,8 @@ platform :ios do
     produce(
       app_identifier: bundle_id,
       app_name: ENV.fetch("WRIST_APP_NAME", "Wrist by Distyll"),
-      sku: ENV.fetch("WRIST_SKU", "distyll-wrist"),
-      language: "English",
+      sku: ENV.fetch("WRIST_SKU", "com.distyll.wrist"),
+      language: "English_UK",
       app_version: "0.1.0",
       platforms: ["ios"]
     )

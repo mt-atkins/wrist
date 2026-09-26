@@ -73,17 +73,15 @@ Wrist uses the Distyll house style shared with Baseline, Notch and Loyal. The to
 
 ## Apple registration and TestFlight
 
-Both bundle identifiers have been registered and read back in the existing personal Apple Developer account. **The App Store Connect app record still needs creation through an authenticated App Store Connect session.** The public API rejected app creation (`/v1/apps` does not support CREATE); bundle registration is not the same as app-record creation.
-
-In App Store Connect → My Apps → New App:
+Both bundle identifiers are registered, and the App Store Connect app record exists:
 
 - Platform: iOS (the Watch app is embedded, not a second store listing)
-- Name: **Wrist by Distyll** (subject to Apple's availability check)
+- Name: **Wrist by Distyll**
 - Primary language: English (U.K.)
 - Bundle: `com.distyll.wrist`
-- SKU: `distyll-wrist`
+- SKU: `com.distyll.wrist`
 
-Fastlane's registration lane is supplied for an authenticated Apple ID session:
+Fastlane's registration lane is kept for recreating these in another account; against the existing record it is a no-op:
 
 ```sh
 bundle install
