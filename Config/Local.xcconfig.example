@@ -1,3 +1,2 @@
-// Copy to Config/Local.xcconfig and fill in your Team ID
-// (developer.apple.com → Membership details).
-DEVELOPMENT_TEAM = YOURTEAMID
+// Optional: copy to Config/Local.xcconfig to override the team in Base.xcconfig.
+// DEVELOPMENT_TEAM = YOURTEAMID

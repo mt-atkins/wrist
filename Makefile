@@ -7,8 +7,6 @@ TEST_DESTINATION ?= platform=iOS Simulator,name=iPhone 17
 bootstrap:            ## Install XcodeGen + fastlane
 	brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
 	bundle install
-	@test -f Config/Local.xcconfig || cp Config/Local.xcconfig.example Config/Local.xcconfig
-	@echo "→ Put your Team ID in Config/Local.xcconfig"
 
 project:              ## Generate Wrist.xcodeproj from project.yml
 	xcodegen generate

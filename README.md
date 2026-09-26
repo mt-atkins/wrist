@@ -36,7 +36,7 @@ In Xcode:
 4. For Watch, create a paired iPhone/Apple Watch simulator in Xcode's Devices and Simulators, then run **WristWatch** on that Watch.
 5. The empty inbox also has an explicitly labelled **sample capture** for exploring the UI.
 
-For **your real iPhone and Watch**, copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig`, set your Developer Team, choose the connected iPhone and Run. Automatic signing must be available in Xcode. Run the Watch scheme on the paired Watch if it is not installed automatically. The team config is git-ignored; do not commit it.
+For **your real iPhone and Watch**, choose the connected iPhone and Run. Signing uses the Distyll team (`5JSF9P7HWD`) set in `Config/Base.xcconfig`; to use a different team, put `DEVELOPMENT_TEAM` in a git-ignored `Config/Local.xcconfig`. Run the Watch scheme on the paired Watch if it is not installed automatically.
 
 **Best first test is a short thought, not a long meeting.** Speech model availability and microphone behavior vary by device/language. Simulator text flows work without microphone or Apple Intelligence. Test actual voice recognition, Bluetooth/background transfer and Apple Intelligence on real devices before trusting them for important recordings.
 
@@ -105,7 +105,7 @@ One-time setup (needs the App Store Connect app record above):
    - Start condition: branch changes on `main`.
    - Action: **Archive – iOS**, scheme `Wrist` (the Watch app is embedded).
    - Post-action: **TestFlight Internal Testing**.
-   - Add the environment variable `WRIST_TEAM_ID` with your Team ID.
+   - Signing uses team `5JSF9P7HWD` from `Config/Base.xcconfig`, so no environment variable is needed.
 4. Push to `main` (or start a build manually), then submit the processed build for review from App Store Connect.
 
 ## Structure

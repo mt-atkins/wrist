@@ -10,7 +10,7 @@ if [ -n "${CI_BUILD_NUMBER:-}" ]; then
     sed -i '' "s/CURRENT_PROJECT_VERSION: \"[0-9]*\"/CURRENT_PROJECT_VERSION: \"$CI_BUILD_NUMBER\"/" project.yml
 fi
 
-# Signing team: set WRIST_TEAM_ID as an environment variable on the workflow.
+# Signing team defaults to Config/Base.xcconfig; WRIST_TEAM_ID on the workflow overrides it.
 if [ -n "${WRIST_TEAM_ID:-}" ]; then
     echo "DEVELOPMENT_TEAM = $WRIST_TEAM_ID" > Config/Local.xcconfig
 fi

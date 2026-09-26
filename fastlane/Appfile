@@ -1,5 +1,5 @@
 # Values come from your environment (see fastlane/.env.example).
 app_identifier(ENV.fetch("WRIST_BUNDLE_ID", "com.distyll.wrist"))
 apple_id(ENV["FASTLANE_USER"])
-team_id(ENV["WRIST_TEAM_ID"])        # Developer Portal team
+team_id(ENV.fetch("WRIST_TEAM_ID", "5JSF9P7HWD"))        # Developer Portal team
 itc_team_id(ENV["WRIST_ITC_TEAM_ID"]) # App Store Connect team (often the same org)
